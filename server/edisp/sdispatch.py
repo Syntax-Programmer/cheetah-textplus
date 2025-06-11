@@ -6,63 +6,80 @@ from dotenv import load_dotenv
 from rich import print
 from email.utils import formatdate
 
-EMAIL_REGEX = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|co)$"
 # content_validator_ptn = r"--subject\s([^\r\n]+)\n--header\s([^\r\n]+)\n--to\s([^\r\n]+)\n--message\s([^\r\n]+)"
-load_dotenv()
-mail = os.getenv("MAIL")
-password = os.getenv("PASS")
 
 
-class ContentValidator:
-    def __init__(self, subject, header, to, message) -> None:
-        self.subject = subject
-        self.header = header
-        self.to = to
-        self.message = message
+class EmailHandler:
+    EMAIL_REGEX = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|co)$"
 
-    def check_content_pattern(self) -> dict[str, str | None]:
-        is_valid_email_format = re.match(EMAIL_REGEX, self.to)
+    def __init__(self, subject: str, header: str, to: str, message: str) -> None:
+        self.data: dict[str, str] | None = None
+        load_dotenv()
+        self.FROM = os.getenv("FROM", "")
+        self.PASSWD = os.getenv("PASSWD", "")
+        self.REPLY_TO = os.getenv("REPLY_TO", "")
 
-        if is_valid_email_format:
-            return {
-                "subject": self.subject,
-                "header": self.header,
-                "to_email": self.to,
-                "message": self.message,
+        if self.__check_content_pattern(subject, header, to, message):
+            self.data = {
+                "subject": subject,
+                "header": header,
+                "to_email": to,
+                "message": message,
             }
-        print("invalid")
-        # Default return if the email format is invalid to satisfy type checker.
-        return {
-            "subject": None,
-            "header": None,
-            "to_email": None,
-            "message": None,
-        }
 
-    def dispatch_email(self):
-        content = self.check_content_pattern()
+    def __check_env_vars(self) -> bool:
+        if not self.FROM or not self.PASSWD or not self.REPLY_TO:
+            print(
+                "[bold red]❗ Environment variables are not set properly. "
+                "Please check your .env file.[/bold red]"
+            )
+            return False
+        return True
+
+    def __check_email_format(self, to: str) -> bool:
+        if re.match(self.EMAIL_REGEX, to) is None:
+            print("[bold red]❗ Invalid email format detected.[/bold red]")
+            return False
+        return True
+
+    def __check_content_pattern(
+        self, subject: str, header: str, to: str, message: str
+    ) -> bool:
+        if not subject or not header or not to or not message:
+            print("[bold red]❗ Missing required fields.[/bold red]")
+            return False
+        return bool(self.__check_email_format(to) and self.__check_env_vars())
+
+    def dispatch(self) -> bool:
+        if (self.data is None) or not self.data:
+            print(
+                "[bold red]❗ Invalid data format detected. Can't dispatch email.[/bold red]"
+            )
+            return False
         msg = EmailMessage()
-        msg.set_content("hey there i just want to check in.")
-        msg["Reply-To"] = "Abdulrokibadebisi@gmail.com"
-        msg["subject"] = f"{content['subject']}"
-        msg["from"] = "Abdulrokibadebisi@gmail.com"
+        msg.set_content("Hey there, I just want to check in.")
+        msg["Reply-To"] = self.REPLY_TO
+        msg["Subject"] = self.data["subject"]
+        msg["From"] = self.FROM
         msg["Date"] = formatdate(localtime=True)
-        msg["to"] = content["to_email"]
+        msg["To"] = self.data["to_email"]
 
         msg.add_alternative(
             f"""
         <div>
-          <h2>{content["header"]}</h2>
+          <h2>{self.data["header"]}</h2>
           <p style='font-size:0.8rem;'>
-            {content["message"]}
+            {self.data["message"]}
           </p>
           <h3>from [Black Chameleon]</h3>
         </div>
-      """,
+            """,
             subtype="html",
         )
 
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(mail, password)
+            smtp.login(self.FROM, self.PASSWD)
             smtp.send_message(msg)
-            print("\n✔️ [bold]Sent[/bold]")
+            print("✔️ [bold green]Sent[/bold green]")
+
+        return True
