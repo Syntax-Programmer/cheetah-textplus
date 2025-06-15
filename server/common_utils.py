@@ -14,4 +14,5 @@ def choice_selector(choices: list[str]) -> str:
 
 
 def return_buffer() -> None:
+    print("\n")
     choice_selector(["Back"])
