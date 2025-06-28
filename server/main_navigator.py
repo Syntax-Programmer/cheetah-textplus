@@ -10,7 +10,7 @@ def print_main_banner(console: Console) -> None:
     banner = pyfiglet.figlet_format("CHEETAH", font="ansi_shadow")
     console.print(banner, justify="center")
     console.print(
-        "__________welcome to cheetah textpulse__________\n",
+        "__________Welcome to Cheetah TextPulse__________\n",
         style="bold white",
         justify="center",
     )
