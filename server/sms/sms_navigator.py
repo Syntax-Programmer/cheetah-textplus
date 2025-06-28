@@ -1,5 +1,6 @@
-from rich import print
 from server.common_utils import choice_selector, clear_screen
+from server.sms.single_sms import single_sms
+from server.sms.bulk_sms import bulk_sms
 import pyfiglet
 from rich.console import Console
 
@@ -23,10 +24,6 @@ def sms_navigator(console: Console) -> None:
         if option == "Back to Home":
             break
         elif option == "Single SMS":
-            print(
-                "[bold yellow]Single SMS functionality is not implemented yet.[/bold yellow]"
-            )
+            single_sms()
         elif option == "Bulk SMS":
-            print(
-                "[bold yellow]Bulk SMS functionality is not implemented yet.[/bold yellow]"
-            )
+            bulk_sms()
